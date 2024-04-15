@@ -33,7 +33,7 @@ async def upload_file(file: UploadFile = File(...)):
     # Queue the task
     redis_client.hset(task_status_map_name, task_id, "queued")
     segment_volume(task_id)
-    
+
     return JSONResponse(content={
         'success': True,
         'result': {
@@ -42,7 +42,7 @@ async def upload_file(file: UploadFile = File(...)):
     }, status_code=206)
 
 
-@app.get("/api/get-segmentation-result")
+@app.get("/api/get-segmentation-task-result")
 async def get_segmentation(task_id: str):
     task_status = redis_client.hget(task_status_map_name, task_id)
 
@@ -50,12 +50,12 @@ async def get_segmentation(task_id: str):
         'success': True,
         'result': {
             'taskId': task_id,
-            'status': "completed",
-            'volumeUrl': path_join(path_basename(data_dir), task_id, "volume.nii.gz"),
+            'status': task_status,
+            'volumeFileUrl': path_join(path_basename(data_dir), task_id, "volume.nii.gz"),
         },
     }
-
+    
     if task_status == "completed":
-        response_content['segmentationUrl'] = path_join(path_basename(data_dir), task_id, "segmentation.nii.gz"),
+        response_content['result']['segmentationFileUrl'] = path_join(path_basename(data_dir), task_id, "segmentation.nii.gz")
     
     return JSONResponse(content=response_content, status_code=200)
