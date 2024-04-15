@@ -4,6 +4,7 @@ from uuid import uuid4
 
 from fastapi import FastAPI, UploadFile, File
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 
 from src.dirs import data_dir
 from src.redis_client import redis_client
@@ -11,6 +12,7 @@ from src.tasks import segment_volume, task_status_map_name
 
 
 app = FastAPI()
+app.mount("/data", StaticFiles(directory=data_dir), name="data_dir")
 
 
 @app.post("/api/add-segmentation-task")

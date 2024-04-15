@@ -1,15 +1,18 @@
+from os import makedirs
 from os.path import basename as path_basename, join as path_join
-from sys import stdout
-from time import sleep
+from shutil import rmtree
+from time import sleep, time
 import unittest
 
+from nibabel import load as nib_load
 import requests
 
-from dirs import data_dir
-from utils import print_inline
+from dirs import data_dir, tests_dir
+from utils import download_file, print_inline
 
 
 class TestAPIs(unittest.TestCase):
+    base_url = "http://localhost:8000"
     api_base_url = "http://localhost:8000/api"
     test_volume_path = path_join(data_dir, "testing", "volume.nii.gz")
 
@@ -70,7 +73,35 @@ class TestAPIs(unittest.TestCase):
                 break
 
             sleep(1)
+        
+        print("    ok.")
 
+        print_inline("Downloading files ... ")
+
+        volume_file_url = f"{self.base_url}/{expected_volume_file_url}"
+        segmentation_file_url = f"{self.base_url}/{expected_segmentation_file_url}"
+        
+        temp_dir = path_join(tests_dir, "temp")
+        makedirs(temp_dir, exist_ok=True)
+
+        volume_file_path = path_join(temp_dir, f"volume-{time()}.nii.gz")
+        segmentation_file_path = path_join(temp_dir, f"segmentation-{time()}.nii.gz")
+
+        if not download_file(volume_file_url, volume_file_path):
+            self.fail("Failed to download volume file from server.")
+        print_inline("    volume download ok ... ")
+        
+        if not download_file(segmentation_file_url, segmentation_file_path):
+            self.fail("Failed to download segmentation file from server.")
+        print_inline("    segmentation download ok ... ")
+
+        volume_file_data = nib_load(volume_file_path).get_fdata()
+        segmentation_file_data = nib_load(volume_file_path).get_fdata()
+
+        self.assertTupleEqual(volume_file_data.shape, segmentation_file_data.shape)
+        print("    shapes ok.")
+
+        rmtree(temp_dir)
 
 if __name__ == "__main__":
     unittest.main()
